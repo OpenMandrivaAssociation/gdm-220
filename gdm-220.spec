@@ -1,11 +1,13 @@
+%define pkgname gdm
+
 Summary: The GNOME Display Manager
-Name: gdm
+Name: %{pkgname}-220
 Version: 2.20.10
 Release: %mkrel 8
 License: GPLv2+
 Group: Graphical desktop/GNOME
 URL: http://www.gnome.org/projects/gdm/
-Source0: ftp://ftp.gnome.org/pub/GNOME/sources/gdm/%{name}-%{version}.tar.bz2
+Source0: ftp://ftp.gnome.org/pub/GNOME/sources/gdm/%{pkgname}-%{version}.tar.bz2
 Source2: gdm_48.png
 Source3: gdm_32.png
 Source4: gdm_16.png
@@ -42,6 +44,7 @@ Patch16: gdm-2.20.0-wait-for-restart.patch
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
 
 Provides: dm
+Conflicts: gdm
 
 Requires(pre):     rpm-helper
 Requires(postun):  rpm-helper
@@ -103,7 +106,7 @@ several different X sessions on your local machine at the same time.
 This package add support for Xnest server in gdm
 
 %prep
-%setup -q
+%setup -q -n %{pkgname}-%{version}
 
 %patch0 -p1 -b .defaultconf
 %patch1 -p1 -b .xvt
@@ -155,9 +158,9 @@ done
 mkdir -p $RPM_BUILD_ROOT%{_datadir}/PolicyKit/policy
 install -m644 %{SOURCE6} $RPM_BUILD_ROOT%{_datadir}/PolicyKit/policy
 
-%{find_lang} %{name} --with-gnome --all-name
-for omf in %buildroot%_datadir/omf/%name/%name-??*.omf;do 
-echo "%lang($(basename $omf|sed -e s/%name-// -e s/.omf//)) $(echo $omf|sed -e s!%buildroot!!)" >> %name.lang
+%{find_lang} %{pkgname} --with-gnome --all-name
+for omf in %buildroot%_datadir/omf/%pkgname/%pkgname-??*.omf;do 
+echo "%lang($(basename $omf|sed -e s/%pkgname-// -e s/.omf//)) $(echo $omf|sed -e s!%buildroot!!)" >> %pkgname.lang
 done
 
 #config for ConsoleKit
@@ -243,7 +246,7 @@ fi
 %endif
 %clean_scrollkeeper
 
-%files -f %{name}.lang
+%files -f %{pkgname}.lang
 %defattr(-, root, root)
 
 %doc AUTHORS COPYING NEWS README gui/greeter/greeter.dtd
@@ -288,8 +291,8 @@ fi
 %{_liconsdir}/*.png
 %{_iconsdir}/*.png
 %{_miconsdir}/*.png
-%dir %{_datadir}/omf/%name
-%{_datadir}/omf/%name/%name-C.omf
+%dir %{_datadir}/omf/%pkgname
+%{_datadir}/omf/%pkgname/%pkgname-C.omf
 %{_mandir}/man1/*
 %dir %{_datadir}/xsessions
 %{_datadir}/xsessions/ssh.desktop
