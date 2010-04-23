@@ -3,7 +3,7 @@
 Summary: The GNOME Display Manager
 Name: %{pkgname}-220
 Version: 2.20.10
-Release: %mkrel 9
+Release: %mkrel 10
 License: GPLv2+
 Group: Graphical desktop/GNOME
 URL: http://www.gnome.org/projects/gdm/
@@ -209,28 +209,7 @@ if [ -x /usr/sbin/chksession ]; then /usr/sbin/chksession -g || true; fi
 /sbin/ldconfig
 %endif
 %update_scrollkeeper
-# Attempt to restart GDM softly by use of the fifo.  Wont work on older
-# then 2.2.3.1 versions but should work nicely on later upgrades.
-# FIXME: this is just way too complex
-FIFOFILE=`grep '^ServAuthDir=' %{_sysconfdir}/X11/gdm/custom.conf | sed -e 's/^ServAuthDir=//'`
-if test x$FIFOFILE = x ; then
-        FIFOFILE=%{_var}/lib/gdm/.gdmfifo
-else
-        FIFOFILE="$FIFOFILE"/.gdmfifo
-fi
-PIDFILE=`grep '^PidFile=' %{_sysconfdir}/X11/gdm/custom.conf | sed -e 's/^PidFile=//'`
-if test x$PIDFILE = x ; then
-        PIDFILE=/var/run/gdm.pid
-fi
-if test -w $FIFOFILE ; then
-        if test -f $PIDFILE ; then
-                if kill -0 `cat $PIDFILE` 2> /dev/null ; then
-                        (echo;echo SOFT_RESTART) >> $FIFOFILE
-                fi
-        fi
-fi
-# ignore error in the above
-exit 0
+%{_sbindir}/gdm-safe-restart >/dev/null 2>&1 || :
 
 %preun
 if [ "$1" = "0" ]; then
