@@ -2,8 +2,8 @@
 
 Summary: The GNOME Display Manager
 Name: %{pkgname}-220
-Version: 2.20.10
-Release: %mkrel 10
+Version: 2.20.11
+Release: %mkrel 1
 License: GPLv2+
 Group: Graphical desktop/GNOME
 URL: http://www.gnome.org/projects/gdm/
