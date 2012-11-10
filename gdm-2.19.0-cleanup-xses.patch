@@ -1,0 +1,14 @@
+--- gdm-2.19.0/daemon/slave.c.cleanup_xses	2007-04-23 14:55:53.000000000 +0200
++++ gdm-2.19.0/daemon/slave.c	2007-04-23 14:58:11.000000000 +0200
+@@ -4588,6 +4588,11 @@
+ 	gdm_sigchld_block_pop ();
+ 
+ 	finish_session_output (run_post_session /* do_read */);
++ 
++     /* If successfully exited then clear the log file
++      */
++     if (d->xsession_errors_filename != NULL)
++	    VE_IGNORE_EINTR (unlink (d->xsession_errors_filename));
+ 
+ 	if (local_login == NULL)
+ 		pwent = NULL;

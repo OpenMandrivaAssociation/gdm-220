@@ -1,0 +1,20 @@
+--- gdm-2.19.1/daemon/slave.c.xvt	2007-05-14 04:08:25.000000000 +0200
++++ gdm-2.19.1/daemon/slave.c	2007-05-14 08:38:59.000000000 +0200
+@@ -3816,7 +3816,7 @@
+ 		gchar *geometry = g_strdup_printf (" -geometry 80x24-%d-%d",
+ 						   d->lrh_offsetx,
+ 						   d->lrh_offsety);
+-		test_exec = find_prog ("xterm");
++		test_exec = find_prog ("xvt");
+ 		if (test_exec == NULL) {
+ 			gdm_errorgui_error_box (d, GTK_MESSAGE_ERROR,
+ 				       _("Cannot find \"xterm\" to start "
+@@ -3871,7 +3871,7 @@
+ #endif /* HAVE_TSOL */
+ 
+ 			gdm_errorgui_error_box (d, GTK_MESSAGE_INFO, failsafe_msg);
+-			focus_first_x_window ("xterm");
++			focus_first_x_window ("xvt");
+ 		}
+ 		g_free (geometry);
+ 		failsafe = TRUE;

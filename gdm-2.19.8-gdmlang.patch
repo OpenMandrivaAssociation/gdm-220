@@ -1,0 +1,11 @@
+--- gdm-2.19.8/daemon/slave.c.i18n	2007-09-07 18:01:49.000000000 +0200
++++ gdm-2.19.8/daemon/slave.c	2007-09-07 18:02:06.000000000 +0200
+@@ -4804,7 +4804,7 @@ gdm_slave_session_start (void)
+ 			has_language = (language != NULL) && (language[0] != '\0');
+ 
+ 			if ((gdm_system_locale != NULL) && (!has_language)) {
+-				lang = gdm_system_locale;
++				lang = "";
+ 			} else {
+ 				lang = language;
+ 			}

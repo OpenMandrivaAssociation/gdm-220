@@ -1,0 +1,7 @@
+sources:
+  "90-grant-audio-devices-to-gdm.fdi:"	9c1fc494b007a08845b8b20405244a6f34020d87
+  "gdm_16.png:"	0a87f81e34eb9eb3d084d3c454b3e138eb32b379
+  "gdm-2.20.11.tar.bz2:"	be23bdf32b7a4254ac80983f4edf25cafa847ff3
+  "gdm_32.png:"	04e4089e6c393e63b30e37be6d35c30862515f34
+  "gdm_48.png:"	4a3be2a83b5a07d5853b71b6a90439e45b1ce92a
+  "gdm-consolekit.conf:"	8a5d1b97efd1a93fe061b486f4fb34e433293bdc

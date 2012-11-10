@@ -1,0 +1,10 @@
+--- gdm-2.19.1/daemon/slave.c.tmpdir	2007-05-14 08:45:15.000000000 +0200
++++ gdm-2.19.1/daemon/slave.c	2007-05-14 08:47:03.000000000 +0200
+@@ -2620,6 +2620,7 @@
+ 		g_setenv ("GDM_GREETER_PROTOCOL_VERSION",
+ 			  GDM_GREETER_PROTOCOL_VERSION, TRUE);
+ 		g_setenv ("GDM_VERSION", VERSION, TRUE);
++		g_setenv ("TMPDIR", "/tmp", TRUE);
+ 
+ 		pwent = getpwnam (gdmuser);
+ 		if G_LIKELY (pwent != NULL) {

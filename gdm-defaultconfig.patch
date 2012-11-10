@@ -1,0 +1,476 @@
+From 25d5390d863e9dec283c8062a8e24d71eeeca504 Mon Sep 17 00:00:00 2001
+From: unknown author <cooker@mandrivalinux.org>
+Date: Fri, 23 Oct 2009 16:52:05 +0000
+Subject: [PATCH 01/13] defaultconf
+
+---
+ config/Init.in       |   93 ++++++++------------------------------------
+ config/PreSession.in |   27 ++++---------
+ config/Xsession.in   |  104 +++-----------------------------------------------
+ config/gdm.conf.in   |   48 +++++++++++-----------
+ 4 files changed, 55 insertions(+), 217 deletions(-)
+
+diff --git a/config/Init.in b/config/Init.in
+index 53d6279..a14dd29 100644
+--- a/config/Init.in
++++ b/config/Init.in
+@@ -4,86 +4,27 @@
+ #  -George
+ 
+ PATH=@X_PATH@:$PATH
+-OLD_IFS=$IFS
+ 
+-gdmwhich () {
+-  COMMAND="$1"
+-  OUTPUT=
+-  IFS=:
+-  for dir in $PATH
+-  do
+-    if test -x "$dir/$COMMAND" ; then
+-      if test "x$OUTPUT" = "x" ; then
+-        OUTPUT="$dir/$COMMAND"
+-      fi
+-    fi
+-  done
+-  IFS=$OLD_IFS 
+-  echo "$OUTPUT"
+-}
+-
+-sysresources=/etc/X11/Xresources
+-
+-# merge in defaults
+-if [ -f "$sysresources" ]; then
+-    xrdb -merge "$sysresources"
++if [ -x /etc/X11/xinit/fixkeyboard ]; then
++    /etc/X11/xinit/fixkeyboard
+ fi
+-
+-sysmodmap=/etc/X11/Xmodmap
+-
+-XMODMAP=`gdmwhich xmodmap`
+-if [ "x$XMODMAP" != "x" ] ; then
+-  if [ "x$GDM_PARENT_DISPLAY" = "x" ]; then
+-    if [ -f $sysmodmap ]; then
+-      $XMODMAP $sysmodmap
+-    fi
+-  else
+-    ( DISPLAY=$GDM_PARENT_DISPLAY XAUTHORITY=$GDM_PARENT_XAUTHORITY $XMODMAP -pke ) | $XMODMAP -
+-  fi
+-
+-  #
+-  # Switch Sun's Alt and Meta mod mappings
+-  #
+-
+-  UNAME=`gdmwhich uname`
+-  PROCESSOR=`$UNAME -p`
+-  if [ "x$PROCESSOR" = "xsparc" ]; then
+-    if $XMODMAP | /usr/bin/grep mod4 | /usr/bin/grep Alt > /dev/null 2>/dev/null
+-    then
+-      $XMODMAP -e "clear Mod1" \
+-               -e "clear Mod4" \
+-               -e "add Mod1 = Alt_L" \
+-               -e "add Mod1 = Alt_R" \
+-               -e "add Mod4 = Meta_L" \
+-               -e "add Mod4 = Meta_R"
+-    fi
+-  fi
++  
++if [ -x /etc/X11/xinit.d/numlock ]; then
++    /etc/X11/xinit.d/numlock &
+ fi
+ 
+-SETXKBMAP=`gdmwhich setxkbmap`
+-if [ "x$SETXKBMAP" != "x" ] ; then
+-  # FIXME: is this all right?  Is this completely on crack?
+-  # What this does is move the xkb configuration from the GDM_PARENT_DISPLAY
+-  # FIXME: This should be done in code.  Or there must be an easier way ...
+-  if [ -n "$GDM_PARENT_DISPLAY" ]; then
+-    XKBSETUP=`( DISPLAY=$GDM_PARENT_DISPLAY XAUTHORITY=$GDM_PARENT_XAUTHORITY $SETXKBMAP -v )`
+-    if [ -n "$XKBSETUP" ]; then
+-      XKBKEYMAP=`echo "$XKBSETUP" | grep '^keymap' | awk '{ print $2 }'`
+-      XKBTYPES=`echo "$XKBSETUP" | grep '^types' | awk '{ print $2 }'`
+-      XKBCOMPAT=`echo "$XKBSETUP" | grep '^compat' | awk '{ print $2 }'`
+-      XKBSYMBOLS=`echo "$XKBSETUP" | grep '^symbols' | awk '{ print $2 }'`
+-      XKBGEOMETRY=`echo "$XKBSETUP" | grep '^geometry' | awk '{ print $2 }'`
+-      if [ -n "$XKBKEYMAP" ]; then
+-        $SETXKBMAP -keymap "$XKBKEYMAP"
+-      elif [ -n "$XKBTYPES" -a -n "$XKBCOMPAT" -a -n "$XKBSYMBOLS" -a -n "$XKBGEOMETRY" ]; then
+-        $SETXKBMAP -types "$XKBTYPES" -compat "$XKBCOMPAT" -symbols "$XKBSYMBOLS" -geometry "$XKBGEOMETRY"
+-      elif [ -n "$XKBTYPES" -a -n "$XKBCOMPAT" -a -n "$XKBSYMBOLS" ]; then
+-        $SETXKBMAP -types "$XKBTYPES" -compat "$XKBCOMPAT" -symbols "$XKBSYMBOLS"
+-      elif [ -n "$XKBSYMBOLS" ]; then
+-        $SETXKBMAP -symbols "$XKBSYMBOLS"
++xrdb -nocpp -merge /etc/X11/xdm/Xresources
++
++for i in /etc/X11/xsetup.d/*.xsetup ; do
++    [ -d $i ] && continue
++  
++    if [ -x $i ]; then
++        if grep -q "# to be sourced" $i; then
++            . $i
++        else
++            $i &
++        fi
+       fi
+-    fi
+-  fi
+-fi
++done
+ 
+ exit 0
+diff --git a/config/PreSession.in b/config/PreSession.in
+index d4eed53..08f0deb 100755
+--- a/config/PreSession.in
++++ b/config/PreSession.in
+@@ -2,7 +2,7 @@
+ #
+ # Note that output goes into the .xsession-errors file for easy debugging
+ #
+-PATH="@X_PATH@:$PATH:/bin:/usr/bin"
++PATH="$PATH:/bin:/usr/bin"
+ OLD_IFS=$IFS
+ 
+ gdmwhich () {
+@@ -25,18 +25,6 @@ gdmwhich () {
+ XSETROOT=`gdmwhich xsetroot`
+ if [ "x$XSETROOT" != "x" ] ; then
+ 
+-	CHECKBACKCOLOR="OK"
+-	if [ "x$GDM_GREETER_TYPE" = "xTHEMED" ]; then
+-		BACKCOLOR=`gdmflexiserver --command="GET_CONFIG greeter/GraphicalThemedColor $DISPLAY"`
+-
+-		CHECKBACKCOLOR=`echo $BACKCOLOR | sed 's/^\([^ ]*\) .*$/\1/'`
+-		if [ "x$CHECKBACKCOLOR" = "xOK" ]; then
+-			BACKCOLOR=`echo $BACKCOLOR | sed 's/^.* \(.*\)$/\1/'`
+-		else
+-			BACKCOLOR=""
+-		fi
+-	fi
+-
+ 	# If we tried to load the themed backgroundcolor, but failed, then try loading plain color
+ 	if [ "x$CHECKBACKCOLOR" != "xOK" ] || [ "x$GDM_GREETER_TYPE" = "xPLAIN" ]; then
+ 
+@@ -44,7 +32,7 @@ if [ "x$XSETROOT" != "x" ] ; then
+ 		BACKTYPE=`gdmflexiserver --command="GET_CONFIG greeter/BackgroundType $DISPLAY"`
+ 
+ 		# Skip if background type does not include a color
+-		if [ "x$BACKTYPE" = "xOK 1" ] || [ "x$BACKTYPE" = "xOK 2" ]; then
++		if [ "x$BACKTYPE" = "xOK 2" ]; then
+ 			BACKCOLOR=`gdmflexiserver --command="GET_CONFIG greeter/BackgroundColor $DISPLAY"`
+ 
+ 			CHECKBACKCOLOR=`echo $BACKCOLOR | sed 's/^\([^ ]*\) .*$/\1/'`
+@@ -56,12 +44,13 @@ if [ "x$XSETROOT" != "x" ] ; then
+ 		fi
+ 	fi
+ 
+-	# Default value
+- 	if [ "x$BACKCOLOR" = "x" ]; then
+- 		BACKCOLOR="#76848F"
+- 	fi
++	if [ "x$BACKCOLOR" != "x" ]; then
++		SETBACKGROUNDCOLOR="-solid $BACKCOLOR"
++	else
++		SETBACKGROUNDCOLOR=""
++	fi
+ 
+-	"$XSETROOT" -cursor_name left_ptr -solid "$BACKCOLOR"
++	"$XSETROOT" -cursor_name left_ptr $SETBACKGROUNDCOLOR
+ fi
+ 
+ exit 0
+diff --git a/config/Xsession.in b/config/Xsession.in
+index 0ae3b31..d057dcf 100755
+--- a/config/Xsession.in
++++ b/config/Xsession.in
+@@ -81,102 +81,6 @@ if [ -n "$freetemp" ] ; then
+ 	"$freetemp"
+ fi
+ 
+-userresources="$HOME/.Xresources"
+-usermodmap="$HOME/.Xmodmap"
+-userxkbmap="$HOME/.Xkbmap"
+-
+-sysresources=/etc/X11/Xresources 
+-sysmodmap=/etc/X11/Xmodmap 
+-sysxkbmap=/etc/X11/Xkbmap
+-
+-rh6sysresources=/etc/X11/xinit/Xresources 
+-rh6sysmodmap=/etc/X11/xinit/Xmodmap 
+-
+-# merge in defaults
+-if [ -f "$rh6sysresources" ]; then
+-    xrdb -merge "$rh6sysresources"
+-fi
+-
+-if [ -f "$sysresources" ]; then
+-    xrdb -merge "$sysresources"
+-fi
+-
+-if [ -f "$userresources" ]; then
+-    xrdb -merge "$userresources"
+-fi
+-
+-# merge in keymaps
+-if [ -f "$sysxkbmap" ]; then
+-    setxkbmap `cat "$sysxkbmap"`
+-    XKB_IN_USE=yes
+-fi
+-
+-if [ -f "$userxkbmap" ]; then
+-    setxkbmap `cat "$userxkbmap"`
+-    XKB_IN_USE=yes
+-fi
+-
+-#
+-# Eeek, this seems like too much magic here
+-#
+-if [ -z "$XKB_IN_USE" -a ! -L /etc/X11/X ]; then
+-    if grep '^exec.*/Xsun' /etc/X11/X > /dev/null 2>&1 && [ -f /etc/X11/XF86Config ]; then
+-       xkbsymbols=`sed -n -e 's/^[     ]*XkbSymbols[   ]*"\(.*\)".*$/\1/p' /etc/X11/XF86Config`
+-       if [ -n "$xkbsymbols" ]; then
+-           setxkbmap -symbols "$xkbsymbols"
+-           XKB_IN_USE=yes
+-       fi
+-    fi
+-fi
+-
+-# xkb and xmodmap don't play nice together
+-if [ -z "$XKB_IN_USE" ]; then
+-    if [ -f "$rh6sysmodmap" ]; then
+-       xmodmap "$rh6sysmodmap"
+-    fi
+-
+-    if [ -f "$sysmodmap" ]; then
+-       xmodmap "$sysmodmap"
+-    fi
+-
+-    if [ -f "$usermodmap" ]; then
+-       xmodmap "$usermodmap"
+-    fi
+-fi
+-
+-unset XKB_IN_USE
+-
+-# Normalize languages, some places/distros screw us up in /etc/profile,
+-# so in case the user did select a language
+-if [ -n "$GDM_LANG" ]; then
+-  LANG="$GDM_LANG"
+-  export LANG
+-
+-  if [ -n "$LC_ALL" ]; then
+-    if [ "$LC_ALL" != "$LANG" ]; then
+-      LC_ALL="$LANG"
+-    fi
+-  else
+-    unset LC_ALL
+-  fi
+-
+-  if [ -n "$LANGUAGE" ]; then
+-    if [ "$LANGUAGE" != "$LANG" ]; then
+-      LANGUAGE="$LANG"
+-    fi
+-  else
+-    unset LANGUAGE
+-  fi
+-
+-  if [ -n "$LINGUAS" ]; then
+-    if [ "$LINGUAS" != "$LANG" ]; then
+-      LINGUAS="$LANG"
+-    fi
+-  else
+-    unset LINGUAS
+-  fi
+-fi
+-
+ # run all system xinitrc shell scripts.
+ if [ -d /etc/X11/xinit/xinitrc.d ]; then
+     for i in /etc/X11/xinit/xinitrc.d/* ; do
+@@ -198,6 +102,10 @@ fi
+ if [ "x$command" = "xdefault" ] ; then
+   if [ -x "$HOME/.Xclients" ]; then
+     command="$HOME/.Xclients"
++  elif [ -x /usr/share/X11/xdm/Xsession ]; then
++    command="/usr/share/X11/xdm/Xsession default"
++  elif [ -x /etc/X11/xdm/Xsession ]; then
++    command="/etc/X11/xdm/Xsession default"
+   elif [ -x /etc/X11/xinit/Xclients ]; then
+     command="/etc/X11/xinit/Xclients"
+   elif [ -x /etc/X11/Xclients ]; then
+@@ -209,7 +117,7 @@ if [ "x$command" = "xdefault" ] ; then
+     else
+       echo "$0: Cannot find Xclients"
+     fi
+-    exec xterm -geometry 80x24+0+0
++    exec xvt -geometry 80x24+0+0
+   fi
+ fi
+ 
+@@ -232,4 +140,4 @@ if [ -n "$zenity" ] ; then
+ 	"$zenity" --info --text "$disptext"
+ fi
+ 
+-exec xterm -geometry 80x24+0+0
++exec xvt -geometry 80x24+0+0
+diff --git a/config/gdm.conf.in b/config/gdm.conf.in
+index 5efdcca..8646399 100644
+--- a/config/gdm.conf.in
++++ b/config/gdm.conf.in
+@@ -68,7 +68,7 @@ TimedLoginDelay=30
+ 
+ # The greeter for attached (non-xdmcp) logins.  Change gdmlogin to gdmgreeter
+ # to get the new graphical greeter.
+-#Greeter=@libexecdir@/gdmlogin
++Greeter=@libexecdir@/gdmgreeter
+ 
+ # The greeter for xdmcp logins, usually you want a less graphically intensive
+ # greeter here so it's better to leave this with gdmlogin
+@@ -85,11 +85,11 @@ TimedLoginDelay=30
+ # Default path to set.  The profile scripts will likely override this value.
+ # This value will be overridden with the value from /etc/default/login if it
+ # contains "ROOT=<pathvalue>".
+-#DefaultPath=@GDM_USER_PATH@
++DefaultPath=@GDM_USER_PATH@:/usr/local/bin
+ # Default path for root.  The profile scripts will likely override this value.
+ # This value will be overridden with the value from /etc/default/login if it
+ # contains "SUROOT=<pathvalue>".
+-#RootPath=/sbin:/usr/sbin:@GDM_USER_PATH@
++RootPath=/sbin:/usr/sbin:/usr/local/sbin:@GDM_USER_PATH@:/usr/local/bin
+ 
+ # If you are having trouble with using a single server for a long time and want
+ # GDM to kill/restart the server, turn this on.  On Solaris, this value is
+@@ -105,7 +105,7 @@ Group=gdm
+ # To try to kill all clients started at greeter time or in the Init script.
+ # does not always work, only if those clients have a window of their own.
+ #KillInitClients=true
+-LogDir=@logdir@
++LogDir=/var/log/gdm
+ 
+ # Note that a post login script is run before a PreSession script.  It is run
+ # after the login is successful and before any setup is run on behalf of the
+@@ -165,7 +165,7 @@ BaseXsession=@gdmconfdir@/Xsession
+ # compatibility reasons with 2.4.4.x.
+ #SessionDesktopDir=/etc/X11/sessions/:@dmconfdir@/Sessions/:@datadir@/gdm/BuiltInSessions/:@datadir@/xsessions/
+ # This is the default .desktop session.  One of the ones in SessionDesktopDir
+-#DefaultSession=gnome.desktop
++DefaultSession=default.desktop
+ # Better leave this blank and HOME will be used.  You can use syntax ~/ below
+ # to indicate home directory of the user.  You can also set this to something
+ # like /tmp if you don't want the authorizations to be in home directories.
+@@ -352,7 +352,7 @@ Enable=false
+ #GtkRC=@datadir@/themes/Default/gtk-2.0/gtkrc
+ 
+ # The GTK+ theme to use for the GUI.
+-#GtkTheme=Default
++GtkTheme=Ia Ora Steel
+ # If to allow changing the GTK+ (widget) theme from the greeter.  Currently
+ # this only affects the standard greeter as the graphical greeter does not yet
+ # have this ability.
+@@ -391,13 +391,13 @@ Enable=false
+ # affect the Face Browser (MinimalUID, DefaultFace, Include, Exclude,
+ # IncludeAll, GlobalFaceDir) are used by both the Standard and Themed
+ # greeter.
+-Browser=false
++Browser=true
+ # The default picture in the browser.
+-#DefaultFace=@pixmapdir@/nobody.png
++DefaultFace=@datadir@/mdk/faces/default.png
+ # User ID's less than the MinimalUID value will not be included in the face
+ # browser or in the gdmselection list for Automatic/Timed login.  They will not
+ # be displayed regardless of the settings for Include and Exclude.
+-#MinimalUID=100
++MinimalUID=500
+ # Users listed in Include will be included in the face browser and in the
+ # gdmsetup selection list for Automatic/Timed login.  Users should be separated
+ # by commas.
+@@ -414,9 +414,9 @@ Browser=false
+ # large numbers of users and this feature should not be used in such
+ # environments.  The setting of IncludeAll does nothing if Include is set to a
+ # non-empty value.
+-#IncludeAll=false
++IncludeAll=true
+ # If user or user.png exists in this dir it will be used as his picture.
+-#GlobalFaceDir=@datadir@/pixmaps/faces/
++GlobalFaceDir=@datadir@/faces/
+ 
+ # File which contains the locale we show to the user.  Likely you want to use
+ # the one shipped with GDM and edit it.  It is not a standard locale.alias
+@@ -454,9 +454,9 @@ Browser=false
+ # utf-8 Note to distributors, if you wish to have a different Welcome string
+ # and wish to have this translated you can have entries such as
+ # "Welcome[cs]=Vitejte na %n".
+-DefaultWelcome=true
++DefaultWelcome=false
+ DefaultRemoteWelcome=true
+-#Welcome=Welcome
++Welcome=Welcome to %n
+ #RemoteWelcome=Welcome to %n
+ 
+ # Xinerama screen we use to display the greeter on.  Not for true multihead,
+@@ -464,14 +464,14 @@ DefaultRemoteWelcome=true
+ #XineramaScreen=0
+ # Background settings for the standard greeter:
+ # Type can be 0=None, 1=Image & Color, 2=Color, 3=Image
+-#BackgroundType=2
+-#BackgroundImage=
+-#BackgroundScaleToFit=true
++BackgroundType=1
++BackgroundImage=/usr/share/mdk/backgrounds/default.jpg
++BackgroundScaleToFit=true
+ # The Standard greeter (gdmlogin) uses BackgroundColor as the background
+ # color, while the themed greeter (gdmgreeter) uses GraphicalThemedColor
+ # as the background color.
+-BackgroundColor=#76848F
+-GraphicalThemedColor=#76848F
++BackgroundColor=#000000
++GraphicalThemedColor=#000000
+ # XDMCP session should only get a color, this is the sanest setting since you
+ # don't want to take up too much bandwidth
+ #BackgroundRemoteOnlyColor=true
+@@ -492,14 +492,14 @@ GraphicalThemedColor=#76848F
+ # Show the Failsafe sessions.  These are much MUCH nicer (focus for xterm for
+ # example) and more failsafe then those supplied by scripts so distros should
+ # use this rather then just running an xterm from a script.
+-#ShowGnomeFailsafeSession=true
+-#ShowXtermFailsafeSession=true
++ShowGnomeFailsafeSession=false
++ShowXtermFailsafeSession=false
+ # Normally there is a session type called 'Last' that is shown which refers to
+ # the last session the user used.  If off, we will be in 'switchdesk' mode
+ # where the session saving stuff is disabled in GDM
+ #ShowLastSession=true
+ # Always use 24 hour clock no matter what the locale.
+-#Use24Clock=auto
++Use24Clock=auto
+ # Do not show any visible feedback in the password field. This is standard for
+ # instance in console, xdm and ssh.
+ #UseInvisibleInEntry=false
+@@ -509,7 +509,7 @@ GraphicalThemedColor=#76848F
+ # list then provide a list that is delimited by /: to the GraphicalThemes
+ # key and set GraphicalThemeRand to true.  Otherwise use GraphicalTheme
+ # and specify just one theme.
+-#GraphicalTheme=circles
++GraphicalTheme=mdk
+ #GraphicalThemes=circles/:happygnome
+ GraphicalThemeDir=@datadir@/gdm/themes/
+ GraphicalThemeRand=false
+@@ -525,7 +525,7 @@ GraphicalThemeRand=false
+ # user input.  If SoundOnLogin is a file and the greeter finds the 'play'
+ # executable (see daemon/SoundProgram) it will play that file instead of just
+ # beeping.
+-#SoundOnLogin=true
++SoundOnLogin=false
+ #SoundOnLoginFile=
+ # If SoundOnLoginSuccess, then the greeter will play a sound (as above) when a
+ # user successfully logs in.
+@@ -626,7 +626,7 @@ Gestures=false
+ 
+ [server-Standard]
+ name=Standard server
+-command=@X_SERVER@ @X_CONFIG_OPTIONS@ @XEVIE_OPTION@
++command=@X_SERVER@ @X_CONFIG_OPTIONS@ @XEVIE_OPTION@ -deferglyphs 16
+ flexible=true
+ # Indicates that the X server should be started at a different process
+ # priority.  Values can be any integer value accepted by the setpriority C
+-- 
+1.7.0.5
+

@@ -1,0 +1,32 @@
+From e55755df2fef3d4762a5cb62e2e824086d2da76a Mon Sep 17 00:00:00 2001
+From: Frederic Crozat <fcrozat@mandriva.com>
+Date: Thu, 24 Sep 2009 12:09:15 +0200
+Subject: [PATCH] Do not restart X server on restart / shutdown
+
+---
+ daemon/gdm.c |    2 ++
+ 1 files changed, 2 insertions(+), 0 deletions(-)
+
+diff --git a/daemon/gdm.c b/daemon/gdm.c
+index 6bba578..ff88af6 100644
+--- a/daemon/gdm.c
++++ b/daemon/gdm.c
+@@ -686,6 +686,7 @@ halt_machine (void)
+ #ifdef __linux__
+ 		change_to_first_and_clear (FALSE);
+ #endif /* __linux */
++                sleep (20);
+ 
+ 		_exit (EXIT_SUCCESS);
+ 	}
+@@ -707,6 +708,7 @@ restart_machine (void)
+ #ifdef __linux__
+ 		change_to_first_and_clear (TRUE);
+ #endif /* __linux */
++                sleep (20);
+ 
+ 	_exit (EXIT_SUCCESS);
+ 	}
+-- 
+1.6.4.4
+

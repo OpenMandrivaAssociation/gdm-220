@@ -1,0 +1,197 @@
+From 48590d56271c2cef03121c7f1e6141ed59e6acc8 Mon Sep 17 00:00:00 2001
+From: Frederic Crozat <fcrozat@mandriva.com>
+Date: Wed, 1 Apr 2009 15:01:11 +0200
+Subject: [PATCH] Set root pixmap for background
+
+---
+ gui/gdmcommon.c |  148 ++++++++++++++++++++++++++++++++++++++++++++++++++-----
+ 1 files changed, 135 insertions(+), 13 deletions(-)
+
+diff --git a/gui/gdmcommon.c b/gui/gdmcommon.c
+index 6a74ac5..aaf6ccd 100644
+--- a/gui/gdmcommon.c
++++ b/gui/gdmcommon.c
+@@ -37,6 +37,8 @@
+ #include <glib/gi18n.h>
+ #include <gdk/gdkx.h>
+ #include <gtk/gtk.h>
++#include <X11/Xatom.h>
++
+ 
+ #include "gdm.h"
+ #include "gdmcommon.h"
+@@ -584,6 +586,137 @@ gdm_common_setup_background_color (gchar *bg_color)
+ 		}
+ }
+ 
++/* code copied from gnome-desktop gnome-bg.c */
++/*
++ * Create a persistent pixmap. We create a separate display
++ * and set the closedown mode on it to RetainPermanent.
++ */
++static GdkPixmap *
++make_root_pixmap (GdkScreen *screen, gint width, gint height)
++{
++	Display *display;
++        const char *display_name;
++	Pixmap result;
++	GdkPixmap *gdk_pixmap;
++	int screen_num;
++	int depth;
++
++	screen_num = gdk_screen_get_number (screen);
++
++	gdk_flush ();
++
++	display_name = gdk_display_get_name (gdk_screen_get_display (screen));
++	display = XOpenDisplay (display_name);
++
++        if (display == NULL) {
++                g_warning ("Unable to open display '%s' when setting "
++			   "background pixmap\n",
++                           (display_name) ? display_name : "NULL");
++                return NULL;
++        }
++
++	/* Desktop background pixmap should be created from
++	 * dummy X client since most applications will try to
++	 * kill it with XKillClient later when changing pixmap
++	 */
++
++	XSetCloseDownMode (display, RetainPermanent);
++
++	depth = DefaultDepth (display, screen_num);
++
++	result = XCreatePixmap (display,
++				RootWindow (display, screen_num),
++				width, height, depth);
++
++	XCloseDisplay (display);
++
++	gdk_pixmap = gdk_pixmap_foreign_new_for_screen (screen, result,
++							width, height, depth);
++
++	gdk_drawable_set_colormap (
++		GDK_DRAWABLE (gdk_pixmap),
++		gdk_drawable_get_colormap (gdk_screen_get_root_window (screen)));
++
++	return gdk_pixmap;
++}
++
++
++static void
++gnome_bg_set_root_pixmap_id (GdkScreen *screen,
++			     GdkPixmap *pixmap)
++{
++	int      result;
++	gint     format;
++	gulong   nitems;
++	gulong   bytes_after;
++	guchar  *data_esetroot;
++	Pixmap   pixmap_id;
++	Atom     type;
++	Display *display;
++	int      screen_num;
++
++	screen_num = gdk_screen_get_number (screen);
++	data_esetroot = NULL;
++
++	display = GDK_DISPLAY_XDISPLAY (gdk_screen_get_display (screen));
++
++	result = XGetWindowProperty (display,
++				     RootWindow (display, screen_num),
++				     gdk_x11_get_xatom_by_name ("ESETROOT_PMAP_ID"),
++				     0L, 1L, False, XA_PIXMAP,
++				     &type, &format, &nitems,
++				     &bytes_after,
++				     &data_esetroot);
++
++	if (data_esetroot != NULL) {
++		if (result == Success && type == XA_PIXMAP &&
++		    format == 32 &&
++		    nitems == 1) {
++			gdk_error_trap_push ();
++			XKillClient (display, *(Pixmap *)data_esetroot);
++			gdk_flush ();
++			gdk_error_trap_pop ();
++		}
++		XFree (data_esetroot);
++	}
++	
++	pixmap_id = GDK_WINDOW_XWINDOW (pixmap);
++	
++	XChangeProperty (display, RootWindow (display, screen_num),
++			 gdk_x11_get_xatom_by_name ("ESETROOT_PMAP_ID"),
++			 XA_PIXMAP, 32, PropModeReplace,
++			 (guchar *) &pixmap_id, 1);
++	XChangeProperty (display, RootWindow (display, screen_num),
++			 gdk_x11_get_xatom_by_name ("_XROOTPMAP_ID"), XA_PIXMAP,
++			 32, PropModeReplace,
++			 (guchar *) &pixmap_id, 1);
++}
++
++static void
++gnome_bg_set_pixmap_as_root (GdkScreen *screen, GdkPixmap *pixmap)
++{
++	Display *display;
++	int      screen_num;
++
++	g_return_if_fail (screen != NULL);
++	g_return_if_fail (pixmap != NULL);
++
++	screen_num = gdk_screen_get_number (screen);
++
++	display = GDK_DISPLAY_XDISPLAY (gdk_screen_get_display (screen));
++
++	gdk_x11_display_grab (gdk_screen_get_display (screen));
++
++	gnome_bg_set_root_pixmap_id (screen, pixmap);
++
++	XSetWindowBackgroundPixmap (display, RootWindow (display, screen_num),
++				    GDK_PIXMAP_XID (pixmap));
++	XClearWindow (display, RootWindow (display, screen_num));
++
++	gdk_display_flush (gdk_screen_get_display (screen));
++	gdk_x11_display_ungrab (gdk_screen_get_display (screen));
++}
++
+ void
+ gdm_common_set_root_background (GdkPixbuf *pb)
+ {
+@@ -591,11 +724,9 @@ gdm_common_set_root_background (GdkPixbuf *pb)
+ 	gint width, height;
+ 
+ 	g_return_if_fail (pb != NULL);
+-
+ 	gdk_drawable_get_size (gdk_get_default_root_window (), &width, &height);
+-	pm = gdk_pixmap_new (gdk_get_default_root_window (), 
+-			width, height, -1);
+ 
++        pm = make_root_pixmap(gdk_display_get_default_screen(gdk_drawable_get_display(gdk_get_default_root_window())),width,height);
+ 
+ 	/* paranoia */
+ 	if (pm == NULL)
+@@ -603,19 +734,10 @@ gdm_common_set_root_background (GdkPixbuf *pb)
+ 
+ 	gdk_draw_pixbuf (pm, NULL, pb, 0, 0, 0, 0, -1, -1, 
+ 			GDK_RGB_DITHER_MAX, 0, 0);
++        gnome_bg_set_pixmap_as_root (gdk_display_get_default_screen(gdk_drawable_get_display(gdk_get_default_root_window())), pm);
+ 
+-	gdk_error_trap_push ();
+-
+-	gdk_window_set_back_pixmap (gdk_get_default_root_window (),
+-				    pm,
+-				    FALSE /* parent_relative */);
+ 
+ 	g_object_unref (G_OBJECT (pm));
+-
+-	gdk_window_clear (gdk_get_default_root_window ());
+-
+-	gdk_flush ();
+-	gdk_error_trap_pop ();
+ }
+ 
+ 
+-- 
+1.6.4.1
+

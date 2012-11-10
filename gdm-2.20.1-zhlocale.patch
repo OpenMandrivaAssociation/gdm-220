@@ -1,0 +1,18 @@
+--- gdm-2.20.1/config/locale.alias.zh	2007-11-19 15:50:21.000000000 +0100
++++ gdm-2.20.1/config/locale.alias	2007-11-19 15:50:56.000000000 +0100
+@@ -32,11 +32,11 @@ Bosnian			bs_BA.UTF-8,bs_BA
+ Breton			br_FR.UTF-8,br_FR
+ Bulgarian		bg_BG.UTF-8,bg_BG
+ Catalan			ca_ES.UTF-8,ca_ES
+-Chinese(ChinaMainland)	zh_CN.UTF-8,zh_CN
++Chinese(ChinaMainland)	zh_CN
+ Chinese(GB18030)	zh_CN.GB18030
+-Chinese(Hong-Kong)	zh_HK.UTF-8,zh_HK
+-Chinese(Singapore)	zh_SG.UTF-8,zh_SG
+-Chinese(Taiwan)		zh_TW.UTF-8,zh_TW
++Chinese(Hong-Kong)	zh_HK
++Chinese(Singapore)	zh_SG
++Chinese(Taiwan)		zh_TW
+ Croatian		hr_HR.UTF-8,hr_HR
+ Czech			cs_CZ.UTF-8,cs_CZ
+ Danish			da_DK.UTF-8,da_DK

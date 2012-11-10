@@ -1,0 +1,53 @@
+diff -p -up gdm-2.20.3/config/gdm.pam gdm-2.20.3/config/gdm
+--- gdm-2.20.3/config/gdm.pam	2008-01-07 19:39:39.000000000 +0000
++++ gdm-2.20.3/config/gdm	2008-01-21 16:32:29.000000000 +0000
+@@ -1,8 +1,11 @@
+ #%PAM-1.0
+ auth       required	pam_env.so
+-auth       required	pam_stack.so service=system-auth
++auth       substack	system-auth
++auth       optional     pam_gnome_keyring.so
+ auth       required	pam_nologin.so
+-account    required	pam_stack.so service=system-auth
+-password   required	pam_stack.so service=system-auth
+-session    required	pam_stack.so service=system-auth
+-session    optional     pam_console.so
++account    include	system-auth
++password   include	system-auth
++session    optional	pam_console.so
++session    required	pam_namespace.so
++session    optional     pam_gnome_keyring.so auto_start
++session    include	system-auth
+diff -p -up gdm-2.20.3/config/gdm-autologin.pam gdm-2.20.3/config/gdm-autologin
+--- gdm-2.20.3/config/gdm-autologin.pam	2008-01-07 19:39:39.000000000 +0000
++++ gdm-2.20.3/config/gdm-autologin	2008-01-21 16:34:12.000000000 +0000
+@@ -1,8 +1,11 @@
+ #%PAM-1.0
+ auth       required	pam_env.so
+-auth       required	pam_nologin.so
+ auth       required	pam_permit.so
+-account    required	pam_stack.so service=system-auth
+-password   required	pam_stack.so service=system-auth
+-session    required	pam_stack.so service=system-auth
+-session    optional     pam_console.so
++auth       required	pam_nologin.so
++account    include	system-auth
++password   include	system-auth
++session    required     pam_loginuid.so
++session    optional	pam_console.so
++session    optional     pam_keyinit.so force revoke
++session    required     pam_namespace.so
++session    include	system-auth
+diff -p -up gdm-2.20.3/utils/gdmsetup-pam.pam gdm-2.20.3/utils/gdmsetup-pam
+--- gdm-2.20.3/utils/gdmsetup-pam.pam	2008-01-07 19:39:32.000000000 +0000
++++ gdm-2.20.3/utils/gdmsetup-pam	2008-01-21 16:13:35.000000000 +0000
+@@ -1,6 +1,8 @@
+ #%PAM-1.0
+ auth       sufficient   pam_rootok.so
+-auth       required     pam_stack.so service=system-auth
++auth       sufficient   pam_timestamp.so
++auth       include      system-auth
+ session    required     pam_permit.so
+ session    optional     pam_xauth.so
++session    optional     pam_timestamp.so
+ account    required     pam_permit.so
