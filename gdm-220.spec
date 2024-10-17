@@ -6,7 +6,7 @@ Version: 2.20.11
 Release: %mkrel 2
 License: GPLv2+
 Group: Graphical desktop/GNOME
-URL: http://www.gnome.org/projects/gdm/
+URL: https://www.gnome.org/projects/gdm/
 Source0: ftp://ftp.gnome.org/pub/GNOME/sources/gdm/%{pkgname}-%{version}.tar.bz2
 Source2: gdm_48.png
 Source3: gdm_32.png
