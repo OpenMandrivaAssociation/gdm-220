@@ -65,6 +65,9 @@ Suggests: openssh-clients
 Suggests: openssh-askpass-gnome
 #needed by patch13
 Requires: menu-messages
+BuildRequires:	autoconf
+BuildRequires:	libtool-base
+BuildRequires:	slibtool
 BuildRequires: X11-static-devel
 BuildRequires: x11-server-xorg
 BuildRequires: x11-server-xephyr
